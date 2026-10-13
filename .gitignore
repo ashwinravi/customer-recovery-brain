@@ -2,3 +2,5 @@
 .venv/
 __pycache__/
 data/runtime.json
+.DS_Store
+devpost-images/

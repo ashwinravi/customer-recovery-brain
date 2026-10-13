@@ -23,11 +23,30 @@ class WorkflowTests(unittest.TestCase):
 
     def test_live_generation_gets_only_retrieved_evidence(self):
         client=MagicMock();client.query.return_value={'success':True,'data':{'chunks':[{'source_title':'Retrieved note','chunk_content':'specific evidence','id':'x'}], 'graph_context':{'query_paths':[]}}}
-        with patch.object(brain,'indexing_status',return_value={'ready':True}),patch.object(brain,'hydra',return_value=client),patch.object(brain,'generate',return_value='Assessment [S1]') as model:
+        with patch.object(brain,'indexing_status',return_value={'ready':True}),patch.object(brain,'hydra',return_value=client),patch.object(brain,'plan_queries',return_value=[]),patch.object(brain,'generate',return_value='Assessment [S1]') as model:
             result=brain.ask('What changed?')
             self.assertEqual(len(model.call_args.args[1]),1)
             self.assertEqual(model.call_args.args[1][0]['content'],'specific evidence')
             self.assertEqual(result['mode'],'HydraDB + LLM')
+
+    def test_followup_search_merges_only_new_evidence(self):
+        first={'data':{'chunks':[{'source_title':'crm.md','chunk_content':'Green','id':'a'}],'graph_context':{}}}
+        followup={'data':{'chunks':[{'source_title':'crm.md','chunk_content':'Green','id':'a'},{'source_title':'billing.md','chunk_content':'Renewal Nov 30','id':'b'}]}}
+        client=MagicMock();client.query.side_effect=[first,followup]
+        with patch.object(brain,'indexing_status',return_value={'ready':True}),patch.object(brain,'hydra',return_value=client),patch.object(brain,'plan_queries',return_value=['renewal status']),patch.object(brain,'generate',return_value='Assessment [S2]') as model:
+            result=brain.ask('Is the renewal at risk?')
+        self.assertEqual([e['title'] for e in model.call_args.args[1]],['crm.md','billing.md'])
+        self.assertEqual([e['label'] for e in model.call_args.args[1]],['S1','S2'])
+        self.assertEqual(result['steps'][1],{'query':'renewal status','new_sources':1})
+        self.assertIn('renewal status',client.query.call_args.kwargs['query'])
+
+    def test_malformed_plan_skips_followups(self):
+        with patch.dict('os.environ',{'LLM_API_KEY':'test','LLM_MODEL':'test','AGENT_MAX_FOLLOWUPS':'2'}),patch.object(brain,'complete',return_value='not json'):
+            self.assertEqual(brain.plan_queries('Risk?',[{'title':'crm.md','content':'Green'}]),[])
+
+    def test_plan_is_capped_and_cleaned(self):
+        with patch.dict('os.environ',{'LLM_API_KEY':'test','LLM_MODEL':'test','AGENT_MAX_FOLLOWUPS':'2'}),patch.object(brain,'complete',return_value='{"queries": ["renewal", " ", "sentiment", "root cause"]}'):
+            self.assertEqual(brain.plan_queries('Risk?',[{'title':'crm.md','content':'Green'}]),['renewal','sentiment'])
 
     def test_missing_evidence_refuses_generation(self):
         client=MagicMock();client.query.return_value={'data':{'chunks':[]}}

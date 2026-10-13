@@ -36,7 +36,7 @@ Without keys or dependencies, `python app.py` still opens the UI and supports ex
 
 **Pitch:** CRM health scores can lag behind the customer story. Customer Recovery Brain connects account records, support incidents, adoption reports, customer meeting notes, and recovery playbooks to explain risk with evidence and draft an accountable recovery plan.
 
-**How it works:** Synthetic documents are ingested into a dedicated HydraDB database and collection. Hybrid retrieval with optional graph context supplies evidence to a configured LLM. Answers cite retrieved passages, identify stale or conflicting sources, distinguish unknowns from inference, and propose recovery actions for human review. A new note can be indexed to refresh the assessment.
+**How it works:** Synthetic documents are ingested into a dedicated HydraDB database and collection. Hybrid retrieval with optional graph context supplies evidence to a configured LLM. An agent step then plans up to two follow-up HydraDB searches for evidence the first retrieval missed (for example root cause or renewal status) and answers once from the merged evidence. Answers cite retrieved passages, identify stale or conflicting sources, distinguish unknowns from inference, and propose recovery actions for human review. A new note can be indexed to refresh the assessment.
 
 **Scope:** One synthetic account. Document ingestion represents source systems; live CRM, support, and analytics integrations are not implemented. No automatic external actions. Citation label validation checks existence, not factual entailment. This is a prototype, not a validated churn predictor.
 
@@ -57,7 +57,7 @@ Without keys or dependencies, `python app.py` still opens the UI and supports ex
 python -m unittest discover -s tests -v
 ```
 
-Tests cover index readiness gating, citation validation, and retrieval isolation. Live HydraDB/LLM calls require your configured accounts and must be verified before the demo.
+Tests cover index readiness gating, citation validation and retry, retrieval isolation, and follow-up search planning and merging. Live HydraDB/LLM calls require your configured accounts and must be verified before the demo.
 
 ## Model setup
 
@@ -106,3 +106,10 @@ Speed depends on hardware. On an Apple Silicon laptop answers took ~70 s at `LLM
 - Note: HydraDB graph indexing is slow (~37–45 min per batch); the app correctly refuses to answer until every source is `completed`. Plan demo recordings around this.
 - Passed on OpenAI `gpt-5.4-mini` (reasoning effort low, graph context on, no length limit): all four questions above in 9.8–12.3 s, each citing all 7 retrieved sources; the October 12 note was cited in the "what changed" answer. `gpt-4.1-mini` failed the citation check in a comparison run.
 - Added: recovery plans end with staged actions (draft customer email from the sourced CSM and a cited proposed CRM update, all marked DRAFT, NOT SENT); the graph panel lists HydraDB relationships with source documents. Re-verified live on `gpt-5.4-mini`: all four questions passed in 7.5–9.7 s, 22 graph relationships shown, no answer claimed anything was sent.
+
+## Improvements after the demo (branch `improvements`)
+
+- **Richer evidence:** six more synthetic Cedar Labs sources (billing and renewal, Q3 survey, draft incident review, internal escalation thread, August QBR, customer ops lead email), 13 sources in total. HydraDB indexed them in ~4 min.
+- **Agentic follow-up search:** after the first retrieval (8 passages), the LLM plans up to `AGENT_MAX_FOLLOWUPS` (default 2, `0` disables) targeted queries for missing evidence; HydraDB fast-mode results are de-duplicated and merged before one cited answer is generated. The UI lists each follow-up query and how many new sources it added.
+- **Readable answers:** answers render as Markdown (headings, lists, tables, highlighted `[S#]` citations) using DOM nodes only, so quoted source text cannot inject HTML. Export still downloads the raw Markdown.
+- Verified live on `gpt-5.4-mini` with graph context: all four demo questions passed in 11.5–15 s; follow-up searches added up to 3 new sources per question (e.g. the draft incident review and the customer ops lead email), which were then cited. 10 unit tests pass.
