@@ -69,9 +69,10 @@ LLM_API_KEY=ollama
 LLM_BASE_URL=http://localhost:11434/v1
 LLM_MODEL=qwen3.5:9b
 LLM_REASONING_EFFORT=none
+LLM_MAX_WORDS=350
 ```
 
-`LLM_REASONING_EFFORT=none` disables qwen3.5 thinking mode. With thinking on, a full assessment exceeded the 90 s request timeout; with it off, a six-source assessment took ~63 s on Apple Silicon. Ollama loaded the model with a 32,768-token context, which fits the system prompt plus 12 retrieved passages.
+`LLM_REASONING_EFFORT=none` disables qwen3.5 thinking mode. With thinking on, a full assessment exceeded the 90 s request timeout; with it off, a six-source assessment took ~63 s on Apple Silicon. `LLM_MAX_WORDS` is a soft answer-length limit added to the system prompt. Almost all latency is local generation (HydraDB retrieval took 0.5–2 s): unlimited answers took 78–146 s; at 350 words ~71 s; at 250 words 56–76 s, but recovery plans then sometimes omitted owner citations or invented dates. Graph context adds ~10K prompt tokens (~35 s) for the same retrieved documents. Ollama loaded the model with a 32,768-token context, which fits the system prompt plus 12 retrieved passages.
 
 ## Live verification status (Oct 12, 2026)
 

@@ -151,10 +151,14 @@ def generate(question, evidence, graph):
     return answer
 
 def complete(provider, key, model, content):
+    system = SYSTEM
+    # Shorter answers are much faster on local models; this is a soft limit, not truncation.
+    if os.getenv('LLM_MAX_WORDS'):
+        system += f"\nKeep the whole answer under {int(os.environ['LLM_MAX_WORDS'])} words; keep every section brief."
     if provider == 'anthropic':
         from anthropic import Anthropic
         response = Anthropic(api_key=key, timeout=90, max_retries=1).messages.create(
-            model=model, max_tokens=1800, system=SYSTEM, messages=[{'role':'user','content':content}])
+            model=model, max_tokens=1800, system=system, messages=[{'role':'user','content':content}])
         answer = '\n'.join(b.text for b in response.content if hasattr(b, 'text'))
     elif provider == 'openai':
         from openai import OpenAI
@@ -166,7 +170,7 @@ def complete(provider, key, model, content):
         if os.getenv('LLM_REASONING_EFFORT'):
             extra['reasoning_effort'] = os.environ['LLM_REASONING_EFFORT']
         response = OpenAI(**kwargs).chat.completions.create(model=model,
-            messages=[{'role':'system','content':SYSTEM},{'role':'user','content':content}], **extra)
+            messages=[{'role':'system','content':system},{'role':'user','content':content}], **extra)
         answer = response.choices[0].message.content or ''
     else:
         raise ValueError('LLM_PROVIDER must be openai or anthropic.')
