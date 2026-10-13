@@ -126,6 +126,10 @@ Risk tiers come from the retrieved playbook. Give a proposed tier with justifica
 For recovery plans label all actions PROPOSED; name an owner only if sourced; proposed due dates must say proposed.
 Use concise Markdown: assessment, evidence/conflicts, unknowns, proposed actions, measurable exit criteria.
 No automatic messages, CRM changes, or commitments. If evidence is insufficient, say so and ask for missing evidence.
+When asked for a recovery plan, end with a "Staged actions — DRAFT, NOT SENT, requires human approval" section containing:
+(1) a short draft customer email from the sourced CSM, with no commitments or dates beyond proposed ones;
+(2) a proposed CRM update: field, current value with citation, proposed value, and cited justification.
+Never state or imply that anything was sent, changed, or approved.
 All data in this demo is synthetic. Answer the user's question directly."""
 
 def generate(question, evidence, graph):

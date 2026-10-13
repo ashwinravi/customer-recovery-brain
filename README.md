@@ -28,7 +28,7 @@ Without keys or dependencies, `python app.py` still opens the UI and supports ex
 2. Ask **Explain the risk**. Show cited evidence: open sync incident, 40% adoption decline, sponsor gap. Causality and cancellation remain unproven.
 3. Ask **Draft recovery plan**. Show proposed actions with sourced owners, milestones, and sustained recovery criteria.
 4. Save the suggested new customer note. Click Index evidence, wait for completed status, then ask: “What changed after the October 12 update, and which recovery actions remain necessary?”
-5. Open graph evidence if returned. Empty graph arrays are possible; never claim relationships were found when absent. Export the brief.
+5. Show the recovery plan's **Staged actions** (draft customer email and proposed CRM update, marked DRAFT, NOT SENT, requiring human approval). Open graph evidence if returned: relationships are listed with their source document, with raw JSON below. Empty graph arrays are possible; never claim relationships were found when absent. Export the brief.
 
 ## Submission copy
 
@@ -105,3 +105,4 @@ Speed depends on hardware. On an Apple Silicon laptop answers took ~70 s at `LLM
 - Passed: new October 12 note saved, ingested, and indexed (~45 min, mostly `graph_creation`). **"What changed after the October 12 update, and which recovery actions remain necessary?"** (146 s) retrieved 7 sources, ranked the new note first, and cited it for the staging-verified / production-pending fix and the still-missing sponsor.
 - Note: HydraDB graph indexing is slow (~37–45 min per batch); the app correctly refuses to answer until every source is `completed`. Plan demo recordings around this.
 - Passed on OpenAI `gpt-5.4-mini` (reasoning effort low, graph context on, no length limit): all four questions above in 9.8–12.3 s, each citing all 7 retrieved sources; the October 12 note was cited in the "what changed" answer. `gpt-4.1-mini` failed the citation check in a comparison run.
+- Added: recovery plans end with staged actions (draft customer email from the sourced CSM and a cited proposed CRM update, all marked DRAFT, NOT SENT); the graph panel lists HydraDB relationships with source documents. Re-verified live on `gpt-5.4-mini`: all four questions passed in 7.5–9.7 s, 22 graph relationships shown, no answer claimed anything was sent.
