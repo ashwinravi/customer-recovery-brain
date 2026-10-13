@@ -59,9 +59,26 @@ python -m unittest discover -s tests -v
 
 Tests cover index readiness gating, citation validation, and retrieval isolation. Live HydraDB/LLM calls require your configured accounts and must be verified before the demo.
 
-## Local model setup (Ollama)
+## Model setup
 
-Tested with `qwen3.5:9b` through Ollama's OpenAI-compatible endpoint:
+The LLM is configured entirely in `.env`; no code changes are needed to switch.
+
+### Demo: hosted OpenAI model (fast)
+
+```
+LLM_PROVIDER=openai
+LLM_API_KEY=            # or set OPENAI_API_KEY
+LLM_MODEL=gpt-5.4-mini
+LLM_BASE_URL=
+LLM_REASONING_EFFORT=low
+LLM_MAX_WORDS=
+```
+
+With graph context on and no length limit, each answer takes ~10–12 s end to end. Retrieved synthetic evidence is sent to OpenAI.
+
+### Private option: local model via Ollama
+
+For privacy, run generation on your own hardware so account evidence never leaves the machine. Tested with `qwen3.5:9b` through Ollama's OpenAI-compatible endpoint:
 
 ```
 LLM_PROVIDER=openai
@@ -72,7 +89,12 @@ LLM_REASONING_EFFORT=none
 LLM_MAX_WORDS=350
 ```
 
-`LLM_REASONING_EFFORT=none` disables qwen3.5 thinking mode. With thinking on, a full assessment exceeded the 90 s request timeout; with it off, a six-source assessment took ~63 s on Apple Silicon. `LLM_MAX_WORDS` is a soft answer-length limit added to the system prompt. Almost all latency is local generation (HydraDB retrieval took 0.5–2 s): unlimited answers took 78–146 s; at 350 words ~71 s; at 250 words 56–76 s, but recovery plans then sometimes omitted owner citations or invented dates. Graph context adds ~10K prompt tokens (~35 s) for the same retrieved documents. Ollama loaded the model with a 32,768-token context, which fits the system prompt plus 12 retrieved passages.
+Speed depends on hardware. On an Apple Silicon laptop answers took ~70 s at `LLM_MAX_WORDS=350` (78–146 s unlimited); faster GPUs or larger memory bandwidth reduce this. Notes from testing:
+
+- `LLM_REASONING_EFFORT=none` disables qwen3.5 thinking mode; with thinking on, answers exceeded the 90 s request timeout.
+- `LLM_MAX_WORDS` is a soft answer-length limit in the system prompt. At 250 words answers took 56–76 s, but recovery plans sometimes omitted owner citations or invented dates.
+- Nearly all latency is local generation; HydraDB retrieval takes 0.5–2 s. Graph context adds ~10K prompt tokens (~35 s locally) for the same retrieved documents.
+- Ollama loaded the model with a 32,768-token context, which fits the system prompt, retrieved passages, and graph context.
 
 ## Live verification status (Oct 12, 2026)
 
@@ -82,3 +104,4 @@ LLM_MAX_WORDS=350
 - Fixed: qwen3.5:9b intermittently cited a nonexistent label (e.g. `[S7]`). Generation now lists the allowed labels and retries once on an invalid citation.
 - Passed: new October 12 note saved, ingested, and indexed (~45 min, mostly `graph_creation`). **"What changed after the October 12 update, and which recovery actions remain necessary?"** (146 s) retrieved 7 sources, ranked the new note first, and cited it for the staging-verified / production-pending fix and the still-missing sponsor.
 - Note: HydraDB graph indexing is slow (~37–45 min per batch); the app correctly refuses to answer until every source is `completed`. Plan demo recordings around this.
+- Passed on OpenAI `gpt-5.4-mini` (reasoning effort low, graph context on, no length limit): all four questions above in 9.8–12.3 s, each citing all 7 retrieved sources; the October 12 note was cited in the "what changed" answer. `gpt-4.1-mini` failed the citation check in a comparison run.
