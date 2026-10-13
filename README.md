@@ -79,4 +79,5 @@ LLM_REASONING_EFFORT=none
 - HydraDB indexing of the six sources took ~37 min, mostly in `graph_creation`.
 - Passed live through the running server (HydraDB hybrid retrieval with graph context → qwen3.5:9b → validated citations): **Explain the risk** (134 s), **Draft recovery plan** (128 s), **What are we missing?** (78 s). Each retrieved six sources and returned graph context.
 - Fixed: qwen3.5:9b intermittently cited a nonexistent label (e.g. `[S7]`). Generation now lists the allowed labels and retries once on an invalid citation.
-- In progress: new October 12 note saved and accepted by HydraDB; indexing and the "What changed after the October 12 update" answer have not yet been verified.
+- Passed: new October 12 note saved, ingested, and indexed (~45 min, mostly `graph_creation`). **"What changed after the October 12 update, and which recovery actions remain necessary?"** (146 s) retrieved 7 sources, ranked the new note first, and cited it for the staging-verified / production-pending fix and the still-missing sponsor.
+- Note: HydraDB graph indexing is slow (~37–45 min per batch); the app correctly refuses to answer until every source is `completed`. Plan demo recordings around this.
