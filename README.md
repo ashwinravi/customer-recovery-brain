@@ -2,6 +2,8 @@
 
 A local runnable hackathon prototype: connect synthetic customer records, explain conflicting risk signals, and draft a cited recovery plan with proposed owners and exit criteria.
 
+**Demo video:** https://youtu.be/x3fNLfdC_8I
+
 ## Run (Python 3.10+)
 
 ```bash
