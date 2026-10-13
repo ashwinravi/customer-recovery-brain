@@ -43,6 +43,13 @@ class WorkflowTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'invalid source citation'):
                 brain.generate('Risk?',[{'label':'S1','content':'Evidence'}],{})
 
+    def test_invalid_citation_is_retried_once(self):
+        fake=MagicMock()
+        fake.chat.completions.create.side_effect=[types.SimpleNamespace(choices=[types.SimpleNamespace(message=types.SimpleNamespace(content=c))]) for c in ('Bad [S9]','Good [S1]')]
+        with patch.dict('os.environ',{'LLM_PROVIDER':'openai','LLM_API_KEY':'test','LLM_MODEL':'test'}),patch('openai.OpenAI',return_value=fake):
+            self.assertEqual(brain.generate('Risk?',[{'label':'S1','content':'Evidence'}],{}),'Good [S1]')
+            self.assertEqual(fake.chat.completions.create.call_count,2)
+
     def test_uncited_answer_is_rejected(self):
         fake=MagicMock()
         fake.chat.completions.create.return_value.choices=[types.SimpleNamespace(message=types.SimpleNamespace(content='Unsupported answer'))]

@@ -134,7 +134,23 @@ def generate(question, evidence, graph):
     model = os.getenv('LLM_MODEL')
     if not key or not model:
         raise ValueError('Set LLM_API_KEY and LLM_MODEL in .env and restart the app.')
-    content = json.dumps({'question': question, 'retrieved_evidence': evidence, 'graph_context': graph}, default=str)
+    allowed = {s['label'] for s in evidence}
+    content = json.dumps({'question': question, 'allowed_citation_labels': sorted(allowed, key=lambda s: int(s[1:])),
+                          'retrieved_evidence': evidence, 'graph_context': graph}, default=str)
+    # Small local models occasionally cite a nonexistent label; one retry usually fixes it.
+    for attempt in range(2):
+        answer = complete(provider, key, model, content)
+        # Reject nonexistent citation labels. This does not prove semantic support.
+        invalid = set(re.findall(r'\[(S\d+)\]', answer)) - allowed
+        if not invalid:
+            break
+    if invalid:
+        raise ValueError('The model produced an invalid source citation. Retry the question.')
+    if not answer.strip() or not re.search(r'\[S\d+\]', answer):
+        raise ValueError('The model returned no cited answer. Retry the question.')
+    return answer
+
+def complete(provider, key, model, content):
     if provider == 'anthropic':
         from anthropic import Anthropic
         response = Anthropic(api_key=key, timeout=90, max_retries=1).messages.create(
@@ -154,13 +170,6 @@ def generate(question, evidence, graph):
         answer = response.choices[0].message.content or ''
     else:
         raise ValueError('LLM_PROVIDER must be openai or anthropic.')
-    # Reject nonexistent citation labels. This does not prove semantic support.
-    allowed = {s['label'] for s in evidence}
-    invalid = set(re.findall(r'\[(S\d+)\]', answer)) - allowed
-    if invalid:
-        raise ValueError('The model produced an invalid source citation. Retry the question.')
-    if not answer.strip() or not re.search(r'\[S\d+\]', answer):
-        raise ValueError('The model returned no cited answer. Retry the question.')
     return answer
 
 def ask(question, graph_on=True, local_only=False):
